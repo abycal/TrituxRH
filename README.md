@@ -11,7 +11,7 @@ tritux-rh/
 │   └── templateTritux_.docx  ← Template CV officiel
 ├── backend/                  ← Spring Boot (port 8080)
 ├── frontend/                 ← React + Tailwind (port 3000)
-└── python-service/           ← FastAPI + Docling (port 8001)
+└── python-service/           ← FastAPI + (port 8001)
 ```
 
 ---
