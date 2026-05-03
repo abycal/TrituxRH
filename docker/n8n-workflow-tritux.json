@@ -1,0 +1,83 @@
+{
+  "name": "Tritux - Extract CV with Gemini",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "extract-cv",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-node",
+      "name": "Webhook - Receive CV Text",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "key", "value": "AIzaSyCAqCIgvDZ6hDgg9yBXbvw9-RJgp63f94Q" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contents",
+              "value": "=[\n  {\n    \"parts\": [\n      {\n        \"text\": \"Tu es un extracteur de CV professionnel. Analyse ce CV et retourne UNIQUEMENT un objet JSON valide, sans markdown, sans backticks, sans commentaires. Respecte exactement ce schéma :\\n{\\\"nom_candidat\\\": \\\"string\\\", \\\"title\\\": \\\"string\\\", \\\"experience_years\\\": null_ou_entier, \\\"skills\\\": [\\\"liste\\\"], \\\"specific_skills\\\": [\\\"liste\\\"], \\\"education\\\": [{\\\"year\\\":\\\"\\\",\\\"degree\\\":\\\"\\\",\\\"school\\\":\\\"\\\"}], \\\"languages\\\": [{\\\"name\\\":\\\"\\\",\\\"level\\\":\\\"\\\"}], \\\"experiences\\\": [{\\\"company\\\":\\\"\\\",\\\"position\\\":\\\"\\\",\\\"start_date\\\":\\\"\\\",\\\"end_date\\\":null,\\\"description\\\":\\\"\\\",\\\"tech_stack\\\":\\\"\\\",\\\"achievements\\\":[]}]}\\n\\nCV à analyser :\\n{{ $json.body.cv_text }}\"\n      }\n    ]\n  }\n]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "gemini-node",
+      "name": "Call Gemini API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extraire le texte de la réponse Gemini\nconst geminiResponse = $input.first().json;\nconst rawText = geminiResponse.candidates[0].content.parts[0].text;\n\n// Nettoyer les backticks si présents\nconst cleaned = rawText\n  .replace(/```json/g, '')\n  .replace(/```/g, '')\n  .trim();\n\n// Parser le JSON\ntry {\n  const profile = JSON.parse(cleaned);\n  return [{ json: profile }];\n} catch (e) {\n  return [{ json: { error: 'JSON invalide', raw: cleaned } }];\n}"
+      },
+      "id": "code-node",
+      "name": "Parse & Clean JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "response-node",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1020, 300]
+    }
+  ],
+  "connections": {
+    "Webhook - Receive CV Text": {
+      "main": [[{ "node": "Call Gemini API", "type": "main", "index": 0 }]]
+    },
+    "Call Gemini API": {
+      "main": [[{ "node": "Parse & Clean JSON", "type": "main", "index": 0 }]]
+    },
+    "Parse & Clean JSON": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "tags": []
+}

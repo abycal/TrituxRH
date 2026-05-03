@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # ─────────────────────────────────────────
+  # PostgreSQL Keycloak — base séparée
+  # ─────────────────────────────────────────
+  keycloak-postgres:
+    image: postgres:15
+    container_name: tritux-keycloak-db
+    environment:
+      POSTGRES_DB: keycloak_db
+      POSTGRES_USER: keycloak_user
+      POSTGRES_PASSWORD: Keycloak@2025!
+    ports:
+      - "5433:5432"
+    volumes:
+      - keycloak_postgres_data:/var/lib/postgresql/data
+    networks:
+      - tritux-network
+
+  # ─────────────────────────────────────────
+  # Keycloak — authentification
+  # ─────────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.3
+    container_name: tritux-keycloak
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-postgres:5432/keycloak_db
+      KC_DB_USERNAME: keycloak_user
+      KC_DB_PASSWORD: Keycloak@2025!
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: Admin@Tritux2025!
+      KC_HTTP_PORT: 8180
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+    ports:
+      - "8180:8180"
+    depends_on:
+      - keycloak-postgres
+    networks:
+      - tritux-network
+
+volumes:
+  postgres_data:
+  keycloak_postgres_data:
+  n8n_data:
+
+networks:
+  tritux-network:
+    driver: bridge
